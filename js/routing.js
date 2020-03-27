@@ -167,6 +167,7 @@ const vr_sheet = function() {
 
         },
         log_roll(results_obj){
+          webhook(results_obj,this.character.discord_hook);
           this.rolls.push(results_obj);
           $('#sheet-rolls').modal('show');
         },
@@ -177,6 +178,7 @@ const vr_sheet = function() {
             modified_target: null,
             roll: null,
             notes: [],
+	    character: this.character.name,
             dicestr
           };
 
@@ -203,7 +205,6 @@ const vr_sheet = function() {
           if(!rolled) {
             return;
           }
-
           logged_roll.roll = rolled; //Attach it to our log object
           return logged_roll;
         },
@@ -1060,7 +1061,7 @@ const vr_routes = [
 ]
 
 const vr_router = new VueRouter({
-  base: "/eclipsehelper/",
+  base: "/ep2-helper/",
   mode: "history",
   routes: vr_routes,
   linkActiveClass: "active",

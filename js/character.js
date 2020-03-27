@@ -407,6 +407,7 @@ class Character {
 		this.languages = "<Input Languages>";
 		this.gender = "<Input Gender>";
 		this.active_forks = "<Input Forks>";
+		this.discord_hook = "webhook_url";
 		this.sex = "<Input Sex>";
 		this.age = 0;
 		this.notes = "<Input Notes>";
@@ -1054,6 +1055,7 @@ var serial_character = {
 	languages: null,
 	gender: null,
 	active_forks: null,
+	discord_hook: null,
 	sex: null,
 	age: null,
 	notes: null,

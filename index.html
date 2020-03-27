@@ -8,7 +8,7 @@
 	<meta name="title" content="Eclipse Phase 2ed Helpers">
 	<meta name="description" content="Online character editor, database of game items/morphs, etc.">
 
-	<base href="/eclipsehelper/">
+	<base href="/ep2-helper/">
 
     <!-- Libs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
@@ -342,6 +342,72 @@
 		return roll;
 	}
 
+	//Consume a rolled result and fires a webhook to discord
+	function webhook(result,uri){
+		rolled=result.roll;
+
+		sup_success="**Quantity** : The test consumes fewer materials or produces more results\n";
+		sup_success+="**Quality** : The work is more exact \n";
+		sup_success+="**Detail** : You acquire information that is much more in-depth or nuanced\n";
+		sup_success+="**Time (task actions only)** : The action takes a 25% less time.\n";
+		sup_success+="**Covertness ** : The action is less obvious or draws less attention (+/− 10 as appropriate).\n";
+		sup_success+="**Damage ** : Inflict +1d6 damage\n";
+
+		sup_failure="**Quantity** : The test consumes more materials or produces fewer results\n";
+		sup_failure+="**Quality** : The work is more sloppy\n";
+		sup_failure+="**Detail** : You acquire false information\n";
+		sup_failure+="**Time (task actions only)** : The action takes a 25% more time.\n";
+		sup_failure+="**Covertness ** : The action is more obvious or draws more attention (+/− 10 as appropriate).\n";
+
+		description="";
+		if(rolled.sup_successes >0 && rolled.critical==0){
+			description="Choose **"+rolled.sup_successes+"** :\n"+sup_success;
+		}
+		if(rolled.sup_failures >0 && rolled.critical==0){
+			description="Choose **"+rolled.sup_failures+"** :\n"+sup_failure;
+		}
+		target=result.original_target;
+		if(result.modified_target != null){
+			target=result.modified_target;
+		}
+		footer=rolled.result+" vs "+target;
+		if(target!=result.original_target){
+			footer+="\n"+result.original_target+" (base value)";
+			for(notif of result.notes){
+				footer += "\n"+notif;
+			}
+		}
+
+
+		payload = {
+			'username': result.character,
+			'embeds': [
+				{
+					'title': rolled.result+" : "+rolled.text,  //# Le titre de la carte
+					'description': description, // # Le corps de la carte
+					'author': {'name': result.reason+" roll ("+target+")"},
+					'footer' : {'text' : footer}
+				},
+			]
+		}
+
+		fire_webhook(payload,uri);
+	}
+
+
+	function fire_webhook(payload,uri){
+
+		var request = new XMLHttpRequest();
+		request.open("POST", uri);
+
+		request.setRequestHeader('Content-type', 'application/json');
+
+		request.send(JSON.stringify(payload));
+
+	}
+
+
+
 	//Consume a dice string and return an object with info about the dice string
 	function parse_dice(dicestr){
 		let reg = /(?:^|[ :\(-])(\d+)d(\d+)([+-]\d+)?/;
@@ -374,6 +440,9 @@
 
       var success = null;
       var text = null;
+      var sup_successes = 0;
+      var sup_failures = 0;
+      var critical=0;
 
       if((diecount == 1) && (dietype == 100)) { //Only on %ile rolls
           var success = (result <= target);
@@ -382,17 +451,18 @@
 	      //"Superiors"
 	      if(target){
 	        //Success
-	        if((result >= 66) && (success)){text = "Two Superior Successes!";} else
-	        if((result >= 33) && (success)){text = "One Superior Success!";} else
+	        if((result >= 66) && (success)){text = "Two Superior Successes!"; sup_successes=2; } else
+	        if((result >= 33) && (success)){text = "One Superior Success!"; sup_successes=1; } else
 	        //Failure
-	        if((result <= 33) && (!success)){text = "Two Superior Failures!";} else
-	        if((result <= 66) && (!success)){text = "One Superior Failure!";}
+	        if((result <= 33) && (!success)){text = "Two Superior Failures!"; sup_failures=2;} else
+	        if((result <= 66) && (!success)){text = "One Superior Failure!"; sup_failures=1;}
 	      }
 
 	      //Criticals
-	      if(result === 0){text = "Critical Success!";} else
-	      if(result === 99){text = "Critical Failure!";} else
+	      if(result === 0){text = "Critical Success!"; critical=1;} else
+	      if(result === 99){text = "Critical Failure!"; critical=1;} else
 	      if((result % 11) === 0) {
+                critical=1;
 	      	if(success) {
 	      		text = "Critical Success!";
 	      	} else {
@@ -411,6 +481,9 @@
       	success,
       	text,
       	dice,
+	sup_successes,
+	sup_failures,
+	critical,
       	modifier
       };
 
